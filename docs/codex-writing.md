@@ -7,7 +7,7 @@ conversation or autonomous document editing is added.
 
 ## Connect
 
-1. Install Codex CLI separately. This adapter currently accepts **0.154.x**;
+1. Install Codex CLI separately. This adapter currently accepts **0.154.x** and **0.156.1**;
    other versions fail closed until their protocol and permission behavior have
    been validated. Iliad does not download or update Codex.
 2. Open Writing assists and select Codex. If discovery fails, select its native
@@ -52,6 +52,18 @@ resubmitted by Iliad. One renderer's new writing request cancels its previous
 selection or continuation request; other windows remain independent.
 
 ## Validation
+
+Windows x64 runtime checks on 2026-09-26 also passed with **Codex CLI
+0.156.1**: effective configuration matched the existing restrictions, the
+thread returned the expected permission profile and no instruction sources,
+and the dedicated ChatGPT session exposed GPT-6-Luna through `model/list`.
+Real synthetic Spanish rewriting and English continuation completed with that
+model; cancellation and session restart passed. A tool-seeking input completed
+without observed tool items. This is bounded test evidence, not a guarantee
+against all tool or sandbox attacks. No macOS runtime validation was performed.
+Only this additional exact version is allowed; adjacent releases are rejected
+until tested. The application neither upgrades the user's Codex installation
+nor pins a model identifier in its provider code.
 
 Run `npm run typecheck`, `npm test`, `npm run lint:css`, and `npm run build`.
 The Codex adapter and transport tests use simulated responses without credentials.

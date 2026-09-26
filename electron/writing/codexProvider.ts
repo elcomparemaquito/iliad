@@ -76,7 +76,7 @@ export class CodexProvider {
     catch { this.status.state = "missing"; throw codexError(); }
     const version = await exec(executable, ["--version"], { windowsHide: true, timeout: 5000 }).catch(() => ({ stdout: "" }));
     // Fail closed across protocol/permission changes until explicitly validated.
-    if (!/^codex-cli 0\.154\.\d+\s*$/u.test(version.stdout.trim())) {
+    if (!/^codex-cli (?:0\.154\.\d+|0\.156\.1)\s*$/u.test(version.stdout.trim())) {
       this.status.state = "incompatible"; throw codexError();
     }
     await mkdir(this.cwd, { recursive: true });

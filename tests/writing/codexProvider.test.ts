@@ -49,6 +49,15 @@ beforeEach(async () => {
 });
 afterEach(async () => { provider.dispose(); await rm(root, { recursive: true, force: true }); });
 describe("Codex writing adapter", () => {
+  it("accepts the validated 0.156.1 runtime with unchanged restrictions", async () => {
+    control.version = "codex-cli 0.156.1";
+    expect(await provider.generate("Rewrite", "Example", new AbortController().signal)).toBe("Texto corregido.");
+    expect(control.calls.find(c => c.method === "thread/start")?.params).toMatchObject({ permissions: "iliad-writing", approvalPolicy: "never", environments: [] });
+  });
+  it.each(["0.156.0", "0.156.2", "0.157.0"])("does not infer compatibility for %s", async version => {
+    control.version = `codex-cli ${version}`;
+    expect((await provider.getStatus()).state).toBe("incompatible");
+  });
   it("discovers account models and limits", async () => {
     expect(await provider.getStatus()).toMatchObject({ state: "connected", model: "test-model", limits: [{ remaining: 80 }] });
   });
