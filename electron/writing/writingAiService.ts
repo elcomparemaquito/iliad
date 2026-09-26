@@ -1,5 +1,7 @@
+import { CodexProvider, CODEX_TIMEOUT_MS } from "./codexProvider.js";
+import type { CodexStatus, WritingProvider } from "./codexTypes.js";
 import { createDiagnosticsLogger, type DiagnosticsLogger } from "../diagnostics/logger.js";
-import type { IdeaAutocompleteTextRequest } from "./autocomplete.js";
+import { autocompleteInstructions, autocompleteModelInput, type IdeaAutocompleteTextRequest } from "./autocomplete.js";
 import { AgentRuntimeError, missingGeminiKeyError, normalizeAgentError } from "./errors.js";
 import { generateGeminiAutocomplete } from "./geminiAutocomplete.js";
 import { GEMINI_TEXT_MODEL, geminiProse, readGeminiJson, requestGeminiText } from "./geminiText.js";
@@ -16,8 +18,10 @@ import {
 
 export interface WritingAssistStatus {
   corrector: { available: boolean; provider: "local" | null };
-  autocomplete: { available: boolean; provider: "gemini-api" | null; model: string | null };
+  autocomplete: { available: boolean; provider: "gemini-api" | "codex" | null; model: string | null };
   geminiKey: GeminiKeyState;
+  selectedProvider?: WritingProvider;
+  codex?: CodexStatus;
 }
 
 export interface TightenSelectionRequest {
@@ -113,6 +117,8 @@ export async function generateGeminiSelectionTransform(
  * on one Gemini key. The corrector runs locally and needs no key.
  */
 export class WritingAiService {
+  private codex: CodexProvider;
+  private configured = false;
   private readonly settingsStore: WritingSettingsStore;
   private readonly diagnostics: DiagnosticsLogger;
   private readonly fetchImpl: typeof fetch | undefined;
@@ -121,8 +127,30 @@ export class WritingAiService {
     this.settingsStore = options.settingsStore ?? new WritingSettingsStore(userDataPath);
     this.diagnostics = options.diagnostics ?? createDiagnosticsLogger(userDataPath);
     this.fetchImpl = options.fetchImpl;
+    this.codex = new CodexProvider(userDataPath);
   }
 
+  async configureCodex() {
+    if (!this.configured) {
+      const settings = await this.settingsStore.getCodexSettings();
+      if (settings.executable) this.codex.setExecutable(settings.executable);
+      if (settings.model) this.codex.restoreModel(settings.model);
+      this.configured = true;
+    }
+  }
+  async setProvider(provider: WritingProvider) {
+    this.codex.dispose();
+    await this.settingsStore.updateWritingSettings({ writingProvider: provider });
+  }
+  async codexAction(action: "connect" | "cancel" | "disconnect" | "model" | "executable", value?: string) {
+    await this.configureCodex();
+    if (action === "connect") return this.codex.login();
+    if (action === "cancel") await this.codex.cancelLogin();
+    if (action === "disconnect") await this.codex.logout();
+    if (action === "model" && value) { this.codex.setModel(value); await this.settingsStore.updateWritingSettings({ codexModel: value }); }
+    if (action === "executable" && value) { this.codex.setExecutable(value); await this.settingsStore.updateWritingSettings({ codexExecutable: value }); }
+  }
+  async requestTimeout(fallback: number) { return await this.settingsStore.getProvider() === "codex" ? CODEX_TIMEOUT_MS : fallback; }
   getGeminiKeyState() {
     return this.settingsStore.getGeminiKeyState();
   }
@@ -134,6 +162,14 @@ export class WritingAiService {
   async writingAssistStatus(): Promise<WritingAssistStatus> {
     const geminiKey = await this.settingsStore.getGeminiKeyState();
 
+    const selectedProvider = await this.settingsStore.getProvider();
+    if (selectedProvider === "codex") {
+      await this.configureCodex();
+      const codex = await this.codex.getStatus();
+      const saved = await this.settingsStore.getCodexSettings();
+      if (saved.model && codex.models.some(m => m.id === saved.model)) { this.codex.setModel(saved.model); codex.model = saved.model; }
+      return { corrector: { available: true, provider: "local" }, autocomplete: { available: codex.state === "connected", provider: "codex", model: codex.model }, geminiKey, selectedProvider, codex };
+    }
     return {
       corrector: { available: true, provider: "local" },
       autocomplete: {
@@ -146,6 +182,11 @@ export class WritingAiService {
   }
 
   async autocompleteIdea(request: IdeaAutocompleteTextRequest): Promise<string> {
+    if (await this.settingsStore.getProvider() === "codex") {
+      if (request.trigger !== "manual") throw new DOMException("Manual actions only", "AbortError");
+      await this.configureCodex();
+      return this.codex.generate(autocompleteInstructions(request.language, request.suggestionKind, request.extend), autocompleteModelInput(request), request.signal);
+    }
     const apiKey = await this.requireGeminiKey();
     const startedAt = Date.now();
 
@@ -172,6 +213,10 @@ export class WritingAiService {
   }
 
   async tightenSelection(request: TightenSelectionRequest): Promise<string> {
+    if (await this.settingsStore.getProvider() === "codex") {
+      await this.configureCodex();
+      return this.codex.generate(selectionTransformInstruction({ mode: request.mode ?? "tighten", language: request.language, instruction: request.instruction }), tightenModelInput(request.text, request.selection), request.signal);
+    }
     const apiKey = await this.requireGeminiKey();
     const startedAt = Date.now();
     const mode = request.mode ?? "tighten";
@@ -201,6 +246,7 @@ export class WritingAiService {
   }
 
   dispose() {
+    this.codex.dispose();
     void this.diagnostics.flush();
   }
 

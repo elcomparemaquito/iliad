@@ -628,3 +628,9 @@
   color: var(--error);
   font-size: var(--text-md);
 }
+
+.writing-provider .writing-assist-switch-note {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}

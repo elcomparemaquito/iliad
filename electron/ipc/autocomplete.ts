@@ -1,3 +1,4 @@
+import { writingRequestControllers } from "./writingRequests.js";
 import { app, ipcMain } from "electron";
 import type { IpcMainInvokeEvent } from "electron";
 import path from "node:path";
@@ -49,6 +50,7 @@ interface AutocompleteIdeaRequest {
 }
 
 interface AutocompleteRuntimeService {
+  requestTimeout?: (fallback: number) => Promise<number>;
   autocompleteIdea(request: {
     requestId: string;
     language: IdeaAutocompleteLanguage;
@@ -81,7 +83,7 @@ export function registerAutocompleteIpc({
   service = new WritingAiService(app.getPath("userData")),
   resolveWorkspaceRootForSession = defaultWorkspaceSessionResolver
 }: RegisterAutocompleteIpcOptions = {}) {
-  const controllers = new Map<string, AbortController>();
+  const controllers = writingRequestControllers;
 
   ipcMain.handle("autocomplete:run", (event, request: AutocompleteIdeaRequest) =>
     handleAutocompleteIpc(event, request, { service, controllers, resolveWorkspaceRootForSession })
@@ -129,7 +131,7 @@ export async function handleAutocompleteIpc(
   const timeout = setTimeout(() => {
     timedOut = true;
     controller.abort();
-  }, normalized.request.suggestionKind === "idea" ? AUTOCOMPLETE_IDEA_TIMEOUT_MS : AUTOCOMPLETE_TIMEOUT_MS);
+  }, await deps.service.requestTimeout?.(normalized.request.suggestionKind === "idea" ? AUTOCOMPLETE_IDEA_TIMEOUT_MS : AUTOCOMPLETE_TIMEOUT_MS) ?? (normalized.request.suggestionKind === "idea" ? AUTOCOMPLETE_IDEA_TIMEOUT_MS : AUTOCOMPLETE_TIMEOUT_MS));
 
   try {
     const rawText = await deps.service.autocompleteIdea({

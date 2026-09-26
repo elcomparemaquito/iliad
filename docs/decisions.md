@@ -444,3 +444,8 @@ read (comments and notes are migrated to companion files). The product guardrail
 moves from `agent-vision.md` to `product-vision.md`.
 
 Spec: [2026-09-24 Iliad writing surface](../specs/2026-09-24-iliad-writing-surface.md).
+
+
+## Codex for manual writing actions (2026-09-26)
+
+Extend ADR-0021's Gemini-only provider decision with an optional, isolated Codex App Server adapter authenticated with ChatGPT. Preserve its product boundary: one document, explicit requests, proposals requiring acceptance, no internal chat or autonomous file editing. Gemini remains available and unchanged for existing users. Codex automatic completions are intentionally disabled to avoid background subscription usage. See [Codex writing actions](codex-writing.md) for implementation and acceptance criteria.

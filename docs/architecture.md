@@ -299,7 +299,7 @@ writer's Markdown in two ways, and both keep every change visible and
 reversible.
 
 **Built-in writing AI** works on the current document and the current selection
-only, runs on one Gemini key (`electron/writing/`, model in `geminiText.ts`),
+only, uses Gemini or an isolated ChatGPT-authenticated Codex App Server (`electron/writing/`),
 and is review-first: nothing lands in the buffer without Tab or Accept.
 
 - Inline completion (`src/editor/ideaAutocomplete/`) shows ghost text; the
@@ -315,7 +315,7 @@ and is review-first: nothing lands in the buffer without Tab or Accept.
   Writing assists at the key field. Writing AI IPC is accepted only from
   trusted app windows (`electron/ipc/trust.ts`).
 
-**One AI key, and the selection decides** (`specs/2026-09-24-one-ai-key.md`).
+**Writing provider and selection** (`specs/2026-09-24-one-ai-key.md`).
 Continuation keys never rewrite. Three direct length keys (defaults ⌘, ⌘. ⌘/,
 neighbours on an English keyboard) ask for a Sentence, Paragraph, or full Idea
 (until the current idea/section is complete; no headings) in one request; if a
@@ -391,6 +391,8 @@ Relevant files:
   `src/components/WritingAssistsMenu.tsx`
 - `bin/iliad`, `bin/iliad.mjs`, `bin/lib/`, `resources/skill/iliad/SKILL.md`
 - `electron/cli/`, `src/app/useCliBridge.ts`
+
+See [Codex writing actions](codex-writing.md) for manual-only capabilities, authentication isolation, protocol restrictions and validation. Gemini remains the default for existing profiles.
 
 ## Workspace Baseline and Outside Changes
 

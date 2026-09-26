@@ -49,6 +49,9 @@ export interface TightenOverlayLabels {
   failed: string;
   noKey: string;
   invalidKey: string;
+  rateLimited?: string;
+  timedOut?: string;
+  providerFailed?: string;
   incomplete: string;
   blocked: string;
   /** Title of the disabled ✦ AI action when no Gemini key is set. */
@@ -1175,6 +1178,9 @@ export function SelectionCommentsOverlay({
 
 function sharedTightenErrorLabel(reason: TightenFailureReason, labels: TightenOverlayLabels) {
   switch (reason) {
+    case "rate_limited": return labels.rateLimited;
+    case "timeout": return labels.timedOut;
+    case "provider": return labels.providerFailed;
     case "invalid_api_key":
       return labels.invalidKey;
     case "incomplete":

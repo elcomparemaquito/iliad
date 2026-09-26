@@ -37,6 +37,20 @@ async function writeStoredSettings(userDataPath: string, settings: StoredSetting
 export class WritingSettingsStore {
   constructor(private readonly userDataPath: string) {}
 
+  async getProvider(): Promise<"gemini" | "codex"> {
+    return (await readStoredSettings(this.userDataPath)).writingProvider === "codex" ? "codex" : "gemini";
+  }
+
+  async getCodexSettings(): Promise<{ executable?: string; model?: string }> {
+    const s = await readStoredSettings(this.userDataPath);
+    return { executable: typeof s.codexExecutable === "string" ? s.codexExecutable : undefined,
+      model: typeof s.codexModel === "string" ? s.codexModel : undefined };
+  }
+
+  async updateWritingSettings(values: { writingProvider?: "gemini" | "codex"; codexExecutable?: string; codexModel?: string }) {
+    await writeStoredSettings(this.userDataPath, { ...await readStoredSettings(this.userDataPath), ...values });
+  }
+
   async getGeminiApiKey() {
     const settings = await readStoredSettings(this.userDataPath);
     const stored = typeof settings.geminiApiKey === "string" ? settings.geminiApiKey.trim() : "";

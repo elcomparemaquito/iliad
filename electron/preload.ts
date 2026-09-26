@@ -182,6 +182,13 @@ const api = {
   cancelAutocompleteIdea: (requestId: string) => {
     void invoke("autocomplete:cancel", requestId);
   },
+  onWritingSettingsChanged: (listener: () => void) => {
+    const handler = () => listener();
+    ipcRenderer.on("writing:settings-changed", handler);
+    return () => { ipcRenderer.removeListener("writing:settings-changed", handler); };
+  },
+  setWritingProvider: (provider: "gemini" | "codex") => invoke("writing:provider", provider),
+  codexAction: (action: "connect" | "cancel" | "disconnect" | "model" | "executable", value?: string) => invoke("writing:codex", action, value),
   getWritingAssistStatus: () => invoke("writing-assist:status"),
   getGeminiKeyState: () => invoke("writing:get-gemini-key-state"),
   setGeminiApiKey: (key: string | null) => invoke("writing:set-gemini-key", key),

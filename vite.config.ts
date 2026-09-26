@@ -16,6 +16,7 @@ export default defineConfig({
     port: 5173
   },
   test: {
+    include: ["tests/**/*.test.{ts,tsx}"],
     // Agent worktrees live under .claude/; never run their copies of the suite.
     exclude: ["**/node_modules/**", "**/dist/**", ".claude/**"]
   }

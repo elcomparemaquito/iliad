@@ -1,3 +1,4 @@
+import { writingRequestControllers } from "./writingRequests.js";
 import { app, ipcMain } from "electron";
 import type { IpcMainInvokeEvent } from "electron";
 import { normalizeAgentError } from "../writing/errors.js";
@@ -35,6 +36,7 @@ interface TightenRequest {
 }
 
 interface TightenRuntimeService {
+  requestTimeout?: (fallback: number) => Promise<number>;
   tightenSelection(request: {
     requestId: string;
     text: string;
@@ -58,7 +60,7 @@ function senderControllerKey(senderId: number, requestId: unknown): string {
 export function registerTightenIpc({
   service = new WritingAiService(app.getPath("userData"))
 }: RegisterTightenIpcOptions = {}) {
-  const controllers = new Map<string, AbortController>();
+  const controllers = writingRequestControllers;
 
   ipcMain.handle("tighten:run", (event, request: TightenRequest) =>
     handleTightenIpc(event, request, { service, controllers })
@@ -114,7 +116,7 @@ export async function handleTightenIpc(
   const timeout = setTimeout(() => {
     timedOut = true;
     controller.abort();
-  }, TIGHTEN_TIMEOUT_MS);
+  }, await deps.service.requestTimeout?.(TIGHTEN_TIMEOUT_MS) ?? TIGHTEN_TIMEOUT_MS);
 
   try {
     const selection = normalizeTightenSelectionRange(text, request?.selection);

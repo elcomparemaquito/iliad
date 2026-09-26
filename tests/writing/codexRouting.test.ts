@@ -1,0 +1,23 @@
+import { afterEach, expect, it, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import path from "node:path";
+import os from "node:os";
+import { WritingAiService } from "../../electron/writing/writingAiService";
+import { WritingSettingsStore } from "../../electron/writing/settingsStore";
+const roots: string[] = [];
+afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
+it("preserves Gemini settings while Codex blocks automatic generation before contacting either provider", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "iliad-codex-routing-")); roots.push(root);
+  const settingsStore = new WritingSettingsStore(root);
+  await settingsStore.setGeminiApiKey("synthetic-key");
+  const fetchImpl = vi.fn();
+  const service = new WritingAiService(root, { settingsStore, fetchImpl });
+  await service.setProvider("codex");
+  await expect(service.autocompleteIdea({ requestId: "auto", language: "es", prefix: "Una prueba", suffix: "", headingPath: [], documentTitle: "", nearbyHeadings: [], trigger: "automatic", suggestionKind: "inline", signal: new AbortController().signal })).rejects.toMatchObject({ name: "AbortError" });
+  expect(fetchImpl).not.toHaveBeenCalled();
+  expect(await service.requestTimeout(15000)).toBe(90000);
+  await service.setProvider("gemini");
+  expect(await settingsStore.getGeminiApiKey()).toBe("synthetic-key");
+  expect(await service.requestTimeout(15000)).toBe(15000);
+  service.dispose();
+});

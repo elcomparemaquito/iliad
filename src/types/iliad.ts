@@ -302,14 +302,22 @@ export type IdeaAutocompleteResult =
   | { ok: true; insert: string }
   | { ok: false; reason: IdeaAutocompleteFailureReason };
 
+export interface CodexStatus {
+  state: "disconnected" | "connecting" | "connected" | "missing" | "incompatible" | "error";
+  models: Array<{ id: string; name: string; effort: string; isDefault: boolean }>;
+  model: string | null;
+  limits: Array<{ remaining: number; resetsAt: number | null }>;
+}
 export interface WritingAssistStatus {
+  selectedProvider?: "gemini" | "codex";
+  codex?: CodexStatus;
   corrector: {
     available: boolean;
     provider: "local" | null;
   };
   autocomplete: {
     available: boolean;
-    provider: "gemini-api" | null;
+    provider: "gemini-api" | "codex" | null;
     model: string | null;
   };
   geminiKey: GeminiKeyState;
@@ -530,6 +538,9 @@ export interface IliadApi {
   autocompleteIdea: (request: IdeaAutocompleteRequest) => Promise<IdeaAutocompleteResult>;
   onAutocompletePartial: (listener: (event: { requestId: string; insert: string }) => void) => () => void;
   cancelAutocompleteIdea: (requestId: string) => void;
+  onWritingSettingsChanged: (listener: () => void) => () => void;
+  setWritingProvider: (provider: "gemini" | "codex") => Promise<void>;
+  codexAction: (action: "connect" | "cancel" | "disconnect" | "model" | "executable", value?: string) => Promise<void>;
   getWritingAssistStatus: () => Promise<WritingAssistStatus>;
   getGeminiKeyState: () => Promise<GeminiKeyState>;
   setGeminiApiKey: (key: string | null) => Promise<GeminiKeyState>;

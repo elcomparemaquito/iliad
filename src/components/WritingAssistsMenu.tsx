@@ -1,8 +1,9 @@
+import { WritingProviderRow } from "./WritingProviderRow";
 import { NotebookPen, PenLine, Moon, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState, type Dispatch, type FormEvent, type RefObject, type SetStateAction } from "react";
 import { autocompleteShortcutActions, autocompleteShortcutChoices, shortcutLabel, type AutocompletePreferences } from "../editor/ideaAutocomplete/options";
 import type { AppStrings } from "../i18n/strings";
-import type { GeminiKeyState } from "../types/iliad";
+import type { GeminiKeyState, WritingAssistStatus } from "../types/iliad";
 
 export const GEMINI_KEY_URL = "https://aistudio.google.com/apikey";
 
@@ -15,6 +16,8 @@ interface WritingAssistsMenuLabels {
 }
 
 interface WritingAssistsMenuProps {
+  status?: WritingAssistStatus | null;
+  refreshStatus?: () => Promise<void>;
   labels: WritingAssistsMenuLabels & AppStrings["writingAssists"];
   preferences: AutocompletePreferences;
   onPreferencesChange: (preferences: AutocompletePreferences) => void;
@@ -198,7 +201,7 @@ function SwitchRow({
 }
 
 export function WritingAssistsMenu({
-  preferences, onPreferencesChange, onOpenNotes, notesAvailable, hasNotes, snoozed, onToggleSnooze, onResetShortcuts,
+  status, refreshStatus, preferences, onPreferencesChange, onOpenNotes, notesAvailable, hasNotes, snoozed, onToggleSnooze, onResetShortcuts,
   labels,
   menuRef,
   open,
@@ -232,7 +235,8 @@ export function WritingAssistsMenu({
 
       {open ? (
         <div className="writing-assists-popover" role="dialog" aria-label={labels.dialogLabel}>
-          {geminiKey && !geminiKey.hasKey ? (
+          {refreshStatus && <WritingProviderRow status={status ?? null} labels={labels} refresh={refreshStatus} />}
+          {status?.selectedProvider !== "codex" && geminiKey && !geminiKey.hasKey ? (
             <GeminiKeyRow keyState={geminiKey} labels={labels} onSave={onSaveGeminiKey} onGetKey={onGetGeminiKey}
               focusRequest={keyFieldFocusRequest} />
           ) : null}
@@ -252,6 +256,7 @@ export function WritingAssistsMenu({
           {autocompleteEnabled ? <>
             {/* In-the-moment actions live on the suggestion and selection bars; this menu is settings only. */}
             <SwitchRow
+              disabled={status?.selectedProvider === "codex"}
               label={labels.suggestWhileTyping}
               checked={!preferences.manualOnly}
               note={preferences.manualOnly ? labels.suggestWhileTypingOff(continueKey) : undefined}
@@ -280,7 +285,7 @@ export function WritingAssistsMenu({
                 onChange={(event) => onPreferencesChange({ ...preferences, announce: event.target.checked })} />{labels.announce}</label>
             </details>
           </> : null}
-          {geminiKey?.hasKey ? (
+          {status?.selectedProvider !== "codex" && geminiKey?.hasKey ? (
             <GeminiKeyRow keyState={geminiKey} labels={labels} onSave={onSaveGeminiKey} onGetKey={onGetGeminiKey}
               focusRequest={keyFieldFocusRequest} />
           ) : null}

@@ -493,21 +493,32 @@ export default function App() {
   // Gates autocomplete and the ✦ AI menu; main re-checks the key on each request.
   const [writingAssistStatus, setWritingAssistStatus] = useState<WritingAssistStatus | null>(null);
   const [keyFieldFocusRequest, setKeyFieldFocusRequest] = useState(0);
-  const hasGeminiKey = Boolean(writingAssistStatus?.geminiKey.hasKey);
+  const hasWritingAi = Boolean(writingAssistStatus?.autocomplete.available);
+  const codexSelected = writingAssistStatus?.selectedProvider === "codex";
   const [updateStatus, setUpdateStatus] = useState<UpdateCheckResult | null>(null);
   const [updateChecking, setUpdateChecking] = useState(false);
   const updateCheckRequestIdRef = useRef(0);
+  const writingStatusRequest = useRef(0);
   const refreshWritingAssistStatus = useCallback(async () => {
+    const request = ++writingStatusRequest.current;
     try {
-      setWritingAssistStatus(await window.iliad.getWritingAssistStatus());
+      const status = await window.iliad.getWritingAssistStatus();
+      if (request === writingStatusRequest.current) setWritingAssistStatus(status);
     } catch {
-      setWritingAssistStatus(null);
+      if (request === writingStatusRequest.current) setWritingAssistStatus(null);
     }
   }, []);
 
   useEffect(() => {
     void refreshWritingAssistStatus();
+    return window.iliad.onWritingSettingsChanged?.(() => void refreshWritingAssistStatus());
   }, [refreshWritingAssistStatus]);
+
+  useEffect(() => {
+    if (!codexSelected || !writingAssistsOpen) return;
+    const timer = setInterval(() => void refreshWritingAssistStatus(), writingAssistStatus?.codex?.state === "connecting" ? 2000 : 30000);
+    return () => clearInterval(timer);
+  }, [codexSelected, writingAssistsOpen, writingAssistStatus?.codex?.state, refreshWritingAssistStatus]);
 
   const saveGeminiKey = useCallback(
     async (key: string | null) => {
@@ -1357,7 +1368,7 @@ export default function App() {
     }
 
     return {
-      enabled: hasGeminiKey,
+      enabled: hasWritingAi,
       onRequestKey: requestGeminiKey,
       minChars: 12,
       maxChars: 4000,
@@ -1373,7 +1384,7 @@ export default function App() {
         }),
       cancel: (requestId) => window.iliad.cancelTighten(requestId)
     };
-  }, [activeFile, editorFile, hasGeminiKey, language, requestGeminiKey, strings.editor.tighten]);
+  }, [activeFile, editorFile, hasWritingAi, language, requestGeminiKey, strings.editor.tighten]);
   const editorWritingAssists = useMemo<EditorWritingAssistsProps | undefined>(() => {
     if (!activeFile || activeFile.kind !== "markdown" || editorFile !== activeFile) {
       return undefined;
@@ -1386,8 +1397,8 @@ export default function App() {
     return {
       correctorEnabled,
       autocompleteEnabled,
-      hasAiKey: hasGeminiKey,
-      preferences: autocompleteOptions.preferences,
+      hasAiKey: hasWritingAi,
+      preferences: codexSelected ? { ...autocompleteOptions.preferences, manualOnly: true } : autocompleteOptions.preferences,
       guidance: notesText,
       snoozedUntil: autocompleteOptions.snoozedUntil,
       onPartial: window.iliad.onAutocompletePartial,
@@ -1424,8 +1435,9 @@ export default function App() {
     activeFile,
     autocompleteEnabled,
     correctorEnabled,
-    hasGeminiKey,
+    hasWritingAi,
     autocompleteOptions.preferences,
+    codexSelected,
     notesText,
     autocompleteOptions.snoozedUntil,
     editorFile,
@@ -1452,7 +1464,7 @@ export default function App() {
     : strings.topbar.noNextDocument;
   const focusModeLabel = focusMode ? strings.topbar.exitFocusMode : strings.topbar.focusMode;
   const autocompleteStatusNote =
-    autocompleteEnabled && writingAssistStatus && !writingAssistStatus.geminiKey.hasKey
+    autocompleteEnabled && writingAssistStatus && !writingAssistStatus.autocomplete.available
       ? strings.writingAssists.autocompleteNeedsKey
       : undefined;
 
@@ -1572,8 +1584,10 @@ export default function App() {
               open={typographyOpen}
             />
             <WritingAssistsMenu
-              preferences={autocompleteOptions.preferences}
-              onPreferencesChange={autocompleteOptions.setPreferences}
+              status={writingAssistStatus}
+              refreshStatus={refreshWritingAssistStatus}
+              preferences={codexSelected ? { ...autocompleteOptions.preferences, manualOnly: true } : autocompleteOptions.preferences}
+              onPreferencesChange={(preferences) => autocompleteOptions.setPreferences({ ...preferences, manualOnly: codexSelected ? autocompleteOptions.preferences.manualOnly : preferences.manualOnly })}
               onOpenNotes={() => {
                 setWritingAssistsOpen(false);
                 void openNotes();
