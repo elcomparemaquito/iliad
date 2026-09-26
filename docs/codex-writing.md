@@ -76,3 +76,27 @@ separately from simulated tests. Never put account details, login URLs, profiles
 document content or authentication tokens into reports or Git.
 
 Protocol reference: https://learn.chatgpt.com/docs/app-server
+
+### Opt-in installed Windows UI test
+
+With the installed app closed and a dedicated Iliad profile already connected
+to Codex with GPT-6-Luna selected, run:
+
+```powershell
+node scripts/verifyCodexWriting.mjs "<Iliad-profile>" "<installed-Iliad-exe>" es
+node scripts/verifyCodexWriting.mjs "<Iliad-profile>" "<installed-Iliad-exe>" en
+```
+
+This consumes real account quota. It copies that profile's Iliad-only Codex
+credential and writing settings into an isolated test profile, creates synthetic
+documents, and drives the installed UI. Never supply the normal Codex home.
+The ignored `test-artifacts/codex-live-*` directories contain credentials: keep
+them private and do not upload them as CI artifacts. This script is not run by
+CI. Reports and screenshots must be separated from profiles before sharing.
+
+The test covers the five presets, custom instructions, three continuation
+lengths, rejection, acceptance, exact undo, cancellation, edits during generation
+and restart. It waits for the expected saved contents instead of assuming a
+fixed autosave delay. Preset locators tolerate the visible Enter-key hint in
+the accessible name. A live model may return no change; inspect such failures
+rather than treating them as deterministic CI results.
