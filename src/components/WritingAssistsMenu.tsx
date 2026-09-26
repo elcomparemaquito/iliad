@@ -250,7 +250,9 @@ export function WritingAssistsMenu({
           <SwitchRow
             label={labels.autocomplete}
             checked={autocompleteEnabled}
-            note={autocompleteNote}
+            note={status?.selectedProvider === "codex"
+              ? (status.autocomplete.available ? undefined : labels.codexStates[status.codex?.state ?? "disconnected"])
+              : autocompleteNote}
             onToggle={() => onSetAutocompleteEnabled((enabled) => !enabled)}
           />
           {autocompleteEnabled ? <>

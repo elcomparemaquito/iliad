@@ -4,12 +4,12 @@ import { describe, expect, it } from "vitest";
 import { WritingAssistsMenu } from "../../src/components/WritingAssistsMenu";
 import { defaultAutocompletePreferences } from "../../src/editor/ideaAutocomplete/options";
 import { appStrings } from "../../src/i18n/strings";
-import type { GeminiKeyState } from "../../src/types/iliad";
+import type { GeminiKeyState, WritingAssistStatus } from "../../src/types/iliad";
 
-function render({ manualOnly = false, geminiKey = { hasKey: true, last4: "1234" } as GeminiKeyState | null } = {}) {
+function render({ manualOnly = false, geminiKey = { hasKey: true, last4: "1234" } as GeminiKeyState | null, status = undefined as WritingAssistStatus | undefined, autocompleteNote = undefined as string | undefined } = {}) {
   const noop = () => undefined;
   return renderToStaticMarkup(
-    <WritingAssistsMenu labels={appStrings.en.writingAssists} menuRef={createRef()} open onToggleOpen={noop}
+    <WritingAssistsMenu status={status} autocompleteNote={autocompleteNote} labels={appStrings.en.writingAssists} menuRef={createRef()} open onToggleOpen={noop}
       correctorEnabled={false} onSetCorrectorEnabled={noop} correctorAvailable
       autocompleteEnabled onSetAutocompleteEnabled={noop}
       geminiKey={geminiKey} onSaveGeminiKey={async () => undefined} onGetGeminiKey={noop}
@@ -19,6 +19,15 @@ function render({ manualOnly = false, geminiKey = { hasKey: true, last4: "1234" 
 }
 
 describe("Writing assists menu", () => {
+  it.each(["missing", "disconnected", "incompatible", "connecting", "error"] as const)("uses Codex copy when %s, never the Gemini key hint", state => {
+    const html = render({
+      geminiKey: { hasKey: false, last4: null },
+      autocompleteNote: appStrings.en.writingAssists.autocompleteNeedsKey,
+      status: { selectedProvider: "codex", corrector: { available: true, provider: "local" }, autocomplete: { available: false, provider: "codex", model: null }, geminiKey: { hasKey: false, last4: null }, codex: { state, models: [], model: null, limits: [] } }
+    });
+    expect(html).not.toContain("Gemini");
+    expect(html).toContain(appStrings.en.writingAssists.codexStates[state]);
+  });
   it("offers one Open notes action instead of inline note fields", () => {
     const html = render();
     expect(html).toContain("Open notes");

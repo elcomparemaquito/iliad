@@ -137,7 +137,7 @@ export const appStrings = {
       provider: "Writing AI",
       codexConnect: "Connect with ChatGPT", codexDisconnect: "Disconnect", codexCancel: "Cancel sign-in",
       codexExecutable: "Locate Codex executable", codexModel: "Model", codexManual: "Codex runs only when you ask. Uses your ChatGPT plan.",
-      codexStates: { disconnected: "Connect your Codex account", connecting: "Complete sign-in in your browser", connected: "Codex connected", missing: "Install Codex CLI, then locate its executable.", incompatible: "Unsupported Codex version. Tested with 0.154.x.", error: "Could not connect to Codex. Try again." },
+      codexStates: { disconnected: "Connect your Codex account", connecting: "Complete sign-in in your browser", connected: "Codex connected", missing: "Install Codex CLI, then locate its executable.", incompatible: "Unsupported Codex version. Tested with 0.154.x and 0.156.1.", error: "Could not connect to Codex. Try again." },
       codexFailed: "Could not complete this action. Check your Codex connection.",
       codexRemaining: (value: number) => `${value}% remaining`,
 
@@ -476,7 +476,7 @@ export const appStrings = {
       provider: "IA de escritura",
       codexConnect: "Conectar con ChatGPT", codexDisconnect: "Desconectar", codexCancel: "Cancelar inicio de sesión",
       codexExecutable: "Buscar ejecutable de Codex", codexModel: "Modelo", codexManual: "Codex actúa solo cuando lo pides. Utiliza tu plan de ChatGPT.",
-      codexStates: { disconnected: "Conecta tu cuenta de Codex", connecting: "Completa el inicio de sesión en el navegador", connected: "Codex conectado", missing: "Instala Codex CLI y selecciona su ejecutable.", incompatible: "Versión de Codex incompatible. Probado con 0.154.x.", error: "No se pudo conectar con Codex. Inténtalo de nuevo." },
+      codexStates: { disconnected: "Conecta tu cuenta de Codex", connecting: "Completa el inicio de sesión en el navegador", connected: "Codex conectado", missing: "Instala Codex CLI y selecciona su ejecutable.", incompatible: "Versión de Codex incompatible. Probado con 0.154.x y 0.156.1.", error: "No se pudo conectar con Codex. Inténtalo de nuevo." },
       codexFailed: "No se pudo completar la acción. Revisa la conexión con Codex.",
       codexRemaining: (value: number) => `${value}% disponible`,
 
